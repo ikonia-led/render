@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>IKONIA — LED Frame Studio</title>
+<style>
+/* ═══════════════════════════════════════════
+   RESET + TOKENS
+═══════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#D4AF37;--gold-b:rgba(212,175,55,.22);
+  --bg:#060606;--sf:#0d0d0d;--sf2:#141414;--sf3:#1c1c1c;
+  --bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.14);--bd3:rgba(255,255,255,.24);
+  --ac:#4dffb4;--ac-b:rgba(77,255,180,.12);
+  --text:#e0e0e0;--mid:#888;--dim:#404040;
+  --pw:356px;--hh:62px;--r:12px;--rs:8px;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Syne',system-ui,sans-serif;
+  font-size:14px;display:flex;flex-direction:column;
+}
+
+/* ── FONTS (inline @import avoids external link tag) ── */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+header{
+  height:var(--hh);display:flex;align-items:center;gap:14px;
+  padding:0 26px;flex-shrink:0;
+  border-bottom:1px solid var(--bd);
+  background:rgba(6,6,6,.98);z-index:100;position:relative;
+}
+/* Logo fallback */
+.logo-box{
+  width:38px;height:38px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,#D4AF37 0%,#F5E07A 55%,#B8900A 100%);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 18px rgba(212,175,55,.3);
+}
+.logo-box span{font-size:13px;font-weight:800;color:#000;letter-spacing:-.04em}
+.logo-img{width:38px;height:38px;border-radius:9px;object-fit:contain;flex-shrink:0;display:none}
+.brand{display:flex;flex-direction:column;gap:1px}
+.brand-name{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.045em;line-height:1}
+.brand-sub{font-size:9px;font-weight:700;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+
+/* Mode pills in header */
+.hpill{
+  display:none;align-items:center;gap:6px;
+  font-size:10px;font-weight:700;letter-spacing:.05em;
+  padding:5px 11px;border-radius:20px;
+}
+.hpill.on{display:flex}
+.hpill-draw{color:var(--ac);border:1px solid rgba(77,255,180,.25);background:rgba(77,255,180,.07)}
+.hpill-glow{color:var(--gold);border:1px solid var(--gold-b);background:rgba(212,175,55,.07)}
+.hpill-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.hpill-draw .hpill-dot{background:var(--ac);animation:pulse 1.3s ease infinite}
+.hpill-glow .hpill-dot{background:var(--gold);animation:pulse 1.8s ease infinite .4s}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.28;transform:scale(.8)}}
+
+/* ═══════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════ */
+main{flex:1;display:flex;min-height:0;overflow:hidden}
+
+/* ═══════════════════════════════════════════
+   CANVAS ZONE
+═══════════════════════════════════════════ */
+#cz{
+  flex:1;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:#090909;
+}
+#cz::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);
+  background-size:38px 38px;
+  mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,black 15%,transparent 100%);
+}
+
+/* drop zone */
+#dz{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:absolute;inset:0;cursor:pointer;z-index:4;transition:background .2s;
+}
+#dz.over{background:rgba(212,175,55,.03)}
+.dzb{
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  padding:48px 44px;max-width:320px;width:88%;
+  border:1.5px dashed rgba(255,255,255,.09);border-radius:20px;
+  transition:border-color .2s,background .2s;
+}
+#dz.over .dzb{border-color:rgba(212,175,55,.45);background:rgba(212,175,55,.03)}
+.dz-ico{width:64px;height:64px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center}
+.dz-ico svg{opacity:.24}
+.dz-title{font-size:15px;font-weight:700;color:#c2c2c2;text-align:center}
+.dz-sub{font-size:12px;color:var(--dim);text-align:center;line-height:1.85}
+.dz-pills{display:flex;gap:6px}
+.dz-pill{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--bd);color:var(--dim);font-weight:600}
+#fi,#wfi{display:none}
+
+/* main canvas */
+#mc{
+  display:block;position:relative;z-index:1;
+  border-radius:2px;
+  box-shadow:0 16px 70px rgba(0,0,0,.75);
+  max-width:calc(100% - 20px);
+  max-height:calc(100% - 20px);
+}
+#mc.draw-cursor{cursor:crosshair!important}
+
+/* ═══════════════════════════════════════════
+   PANEL
+═══════════════════════════════════════════ */
+aside{
+  width:var(--pw);flex-shrink:0;
+  border-left:1px solid var(--bd);background:var(--sf);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.ps{
+  flex:1;overflow-y:auto;padding:20px;
+  display:flex;flex-direction:column;gap:20px;
+  -webkit-overflow-scrolling:touch;
+}
+.ps::-webkit-scrollbar{width:3px}
+.ps::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+.pf{padding:16px 20px;border-top:1px solid var(--bd);flex-shrink:0}
+
+/* empty state */
+#pe{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;flex:1;padding:50px 28px;text-align:center}
+#pe svg{opacity:.08}
+#pe p{font-size:12px;color:var(--dim);line-height:1.9}
+
+/* section label */
+.sec{
+  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+  display:flex;align-items:center;gap:10px;
+}
+.sec::after{content:'';flex:1;height:1px;background:var(--bd)}
+.sec-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* ── UTILS ── */
+.hid{display:none!important}
+.fdd{opacity:.28;pointer-events:none;transition:opacity .2s}
+
+/* ── TOGGLE ── */
+.tr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);min-height:50px}
+.tl{font-size:13px;font-weight:600;color:var(--text)}
+.sw{position:relative;width:40px;height:22px;display:inline-block;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.swt{position:absolute;inset:0;background:#1d1d1d;border-radius:12px;cursor:pointer;border:1px solid rgba(255,255,255,.08);transition:background .2s,border-color .2s}
+.sw input:checked+.swt{background:var(--ac);border-color:var(--ac)}
+.swth{position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;pointer-events:none;transition:transform .22s cubic-bezier(.34,1.56,.64,1);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.sw input:checked~.swth{transform:translateX(18px)}
+
+/* ── FILE BADGE ── */
+.fbg{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r)}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--ac);flex-shrink:0;box-shadow:0 0 10px var(--ac)}
+.fn{font-size:12px;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.fch{font-size:10px;font-weight:700;color:var(--dim);cursor:pointer;padding:6px 9px;border-radius:6px;border:1px solid var(--bd);flex-shrink:0;letter-spacing:.03em;transition:color .15s,border-color .15s;min-height:34px;display:flex;align-items:center}
+.fch:hover{color:#bbb;border-color:var(--bd2)}
+
+/* ── SLIDERS ── */
+.ctrl{display:flex;flex-direction:column;gap:8px}
+.cl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+.sr{display:flex;align-items:center;gap:11px}
+input[type="range"]{flex:1;height:3px;background:rgba(255,255,255,.08);border-radius:2px;appearance:none;outline:none;cursor:pointer}
+input[type="range"]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;background:var(--ac);border-radius:50%;cursor:pointer;box-shadow:0 0 0 3px rgba(77,255,180,.14),0 0 9px rgba(77,255,180,.28);transition:box-shadow .15s}
+input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 0 5px rgba(77,255,180,.2),0 0 14px rgba(77,255,180,.38)}
+.sv{font-family:'DM Mono',monospace;font-size:12px;color:var(--mid);min-width:34px;text-align:right}
+
+/* ── SELECT ── */
+select{
+  width:100%;padding:11px 30px 11px 13px;appearance:none;outline:none;
+  background:var(--sf2) url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23555' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+  border:1px solid var(--bd);border-radius:var(--r);color:var(--text);
+  font-family:'Syne',system-ui,sans-serif;font-size:13px;cursor:pointer;
+  transition:border-color .15s;min-height:46px;
+}
+select:hover,select:focus{border-color:var(--bd2)}
+
+/* ── COLOR PRESETS ── */
+.prr{display:flex;gap:6px;flex-wrap:wrap}
+.pr{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:border-color .15s,transform .15s;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.5) inset}
+.pr:hover{transform:scale(1.18)}
+.pr.on{border-color:rgba(255,255,255,.85)!important;transform:scale(1.1)}
+
+/* wall presets — square */
+.wpr{width:24px;height:24px;border-radius:6px;cursor:pointer;border:2.5px solid transparent;transition:border-color .15s,transform .12s;flex-shrink:0}
+.wpr:hover{transform:scale(1.12)}
+.wpr.on{border-color:rgba(255,255,255,.78)!important;transform:scale(1.08)}
+
+/* color picker row */
+.cpr{display:flex;align-items:center;gap:9px;padding:8px 12px;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs)}
+input[type="color"]{width:24px;height:24px;border:none;background:none;cursor:pointer;padding:0;border-radius:4px;flex-shrink:0}
+input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+input[type="color"]::-webkit-color-swatch{border:none;border-radius:3px}
+.chex{font-family:'DM Mono',monospace;font-size:12px;color:var(--mid);flex:1;letter-spacing:.04em}
+.chash{font-family:'DM Mono',monospace;font-size:12px;color:var(--dim)}
+
+/* ── DRAW BUTTON ── */
+.draw-btn{
+  width:100%;min-height:54px;display:flex;align-items:center;justify-content:center;gap:10px;
+  border:1.5px solid var(--bd2);border-radius:var(--r);background:var(--sf2);cursor:pointer;
+  font-family:'Syne',system-ui,sans-serif;font-size:14px;font-weight:700;color:var(--text);
+  transition:all .2s;letter-spacing:.01em;
+}
+.draw-btn:hover{border-color:var(--bd3);color:#fff;background:var(--sf3)}
+.draw-btn.on{background:rgba(77,255,180,.07);border-color:var(--ac);color:var(--ac);box-shadow:0 0 22px rgba(77,255,180,.1)}
+
+/* action row */
+.acts{display:flex;gap:7px}
+.act{
+  flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;gap:5px;
+  border:1px solid var(--bd);border-radius:var(--rs);background:none;cursor:pointer;
+  font-family:'Syne',system-ui,sans-serif;font-size:11px;font-weight:600;color:var(--dim);
+  transition:all .15s;letter-spacing:.02em;padding:0 6px;
+}
+.act:hover{border-color:var(--bd2);color:var(--text)}
+.act.del:hover{border-color:rgba(255,70,70,.4);color:#ff6060}
+
+/* ── LED CARDS ── */
+#led-list{display:flex;flex-direction:column;gap:8px}
+.lcard{border:1px solid var(--bd);border-radius:var(--r);background:var(--sf2);overflow:hidden;transition:border-color .2s,background .2s}
+.lcard.sel{border-color:rgba(255,255,255,.15);background:var(--sf3)}
+.lcard-hdr{display:flex;align-items:center;gap:9px;padding:12px 14px;cursor:pointer;min-height:52px}
+.ldot{width:13px;height:13px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.14);transition:box-shadow .2s}
+.lcard.sel .ldot{box-shadow:0 0 14px currentColor}
+.lname{flex:1;background:none;border:none;outline:none;font-family:'Syne',system-ui,sans-serif;font-size:13px;font-weight:600;color:var(--text);min-width:0;cursor:text;padding:2px 0}
+.lname:focus{color:#fff}
+.lpc{font-size:10px;font-weight:700;color:var(--dim);padding:2px 7px;border-radius:4px;border:1px solid var(--bd);font-family:'DM Mono',monospace;flex-shrink:0}
+.lpc.has{color:var(--ac);border-color:rgba(77,255,180,.28)}
+.lcpanel{padding:0 14px 14px;display:none;flex-direction:column;gap:10px}
+.lcard.sel .lcpanel{display:flex}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:3px;padding:3px;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r)}
+.tab{flex:1;padding:9px 6px;border:none;background:none;cursor:pointer;font-family:'Syne',system-ui,sans-serif;font-size:12px;font-weight:600;color:var(--dim);border-radius:9px;transition:background .15s,color .15s;text-align:center;min-height:42px}
+.tab.on{background:var(--sf3);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+
+/* wall image drop */
+.wdrop{border:1.5px dashed rgba(255,255,255,.09);border-radius:var(--r);padding:22px 16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:9px;transition:border-color .2s,background .2s;text-align:center;justify-content:center;min-height:100px}
+.wdrop:hover,.wdrop.over{border-color:rgba(212,175,55,.4);background:rgba(212,175,55,.03)}
+.wdrop svg{opacity:.26}
+.wdrop strong{font-size:12px;color:#777;font-weight:700;display:block;margin-bottom:2px}
+.wdrop p{font-size:11px;color:var(--dim);line-height:1.55}
+
+/* wall image preview */
+.wip{display:flex;align-items:center;gap:9px;padding:9px;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r)}
+.wthumb{width:50px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid var(--bd)}
+.winame{font-size:11px;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wisub{font-size:10px;color:var(--dim);margin-top:2px}
+.wirm{flex-shrink:0;padding:5px 9px;border:1px solid var(--bd);border-radius:6px;background:none;cursor:pointer;font-size:11px;font-weight:700;color:var(--dim);font-family:'Syne',system-ui,sans-serif;transition:color .15s,border-color .15s;min-height:32px}
+.wirm:hover{color:#cc5555;border-color:rgba(200,80,80,.35)}
+
+/* ── DOWNLOAD ── */
+.btndl{
+  width:100%;min-height:56px;padding:14px;
+  background:linear-gradient(135deg,#D4AF37 0%,#ECC84A 50%,#C49020 100%);
+  color:#000;border:none;border-radius:var(--r);
+  font-family:'Syne',system-ui,sans-serif;font-size:15px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;letter-spacing:-.01em;
+  transition:opacity .15s,transform .1s,box-shadow .15s;
+  box-shadow:0 0 26px rgba(212,175,55,.2);
+}
+.btndl:hover{opacity:.91;box-shadow:0 0 38px rgba(212,175,55,.32)}
+.btndl:active{transform:scale(.98)}
+.btndl:disabled{opacity:.16;cursor:not-allowed;background:#333;box-shadow:none}
+.rn{font-size:11px;color:var(--dim);text-align:center;margin-top:8px}
+
+/* ── DIVIDER ── */
+.dv{height:1px;background:var(--bd)}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media (max-width:768px){
+  :root{--hh:54px;--pw:100%}
+  header{padding:0 16px;gap:11px}
+  .logo-box{width:32px;height:32px}
+  .brand-name{font-size:18px}
+  .brand-sub{font-size:8px}
+  main{flex-direction:column}
+  #cz{height:44vh;flex:none;width:100%}
+  aside{width:100%;border-left:none;border-top:1px solid var(--bd);flex:1;overflow:hidden}
+  .ps{padding:14px 16px;gap:15px}
+  .pf{padding:12px 16px}
+  .draw-btn{min-height:56px}
+  .btndl{min-height:52px}
+}
+@media (max-width:480px){
+  .brand-name{font-size:16px}
+  .brand-sub,.hpill-draw span:not(.hpill-dot),.hpill-glow span:not(.hpill-dot){display:none}
+  #cz{height:40vh}
+  .acts{flex-wrap:wrap}
+  .act{min-height:46px}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ HEADER ════════════════════ -->
+<header>
+  <!-- Logo: tries PNG, falls back to text mark -->
+  <div id="logo-area">
+    <div class="logo-box" id="logo-fb"><span>IK</span></div>
+  </div>
+  <div class="brand">
+    <span class="brand-name">IKONIA</span>
+    <span class="brand-sub">LED Frame Studio</span>
+  </div>
+  <div class="hdr-r">
+    <div class="hpill hpill-draw" id="pill-draw">
+      <div class="hpill-dot"></div><span id="pill-draw-txt">Dibujando</span>
+    </div>
+    <div class="hpill hpill-glow" id="pill-glow">
+      <div class="hpill-dot"></div><span>Backlight</span>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<main>
+
+  <!-- CANVAS ZONE -->
+  <div id="cz">
+    <div id="dz">
+      <div class="dzb">
+        <div class="dz-ico">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <path d="M3 15l4.5-5 4 4.5 2.5-2.5 4 4.5"/>
+            <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <div class="dz-title">Arrastra el cuadro aquí</div>
+        <div class="dz-sub">o toca para explorar archivos<br>JPG · PNG · WEBP · cualquier tamaño</div>
+        <div class="dz-pills">
+          <span class="dz-pill">JPG</span>
+          <span class="dz-pill">PNG</span>
+          <span class="dz-pill">WEBP</span>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="fi" accept="image/*">
+    <canvas id="mc" class="hid"></canvas>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <aside>
+
+    <!-- Empty state -->
+    <div id="pe">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      <p>Carga la imagen de tu cuadro<br>para empezar a diseñar</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="ps hid" id="pctrl">
+
+      <!-- ── CUADRO ── -->
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div class="sec">Cuadro</div>
+        <div class="fbg">
+          <div class="fdot"></div>
+          <div class="fn" id="fn">sin archivo</div>
+          <div class="fch" id="fchb">Cambiar</div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════
+           SECCIÓN 1 — RETROILUMINACIÓN
+      ══════════════════════════════════ -->
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div class="sec">
+          <div class="sec-dot" style="background:var(--gold)"></div>
+          Retroiluminación
+        </div>
+
+        <!-- Master toggle -->
+        <div class="tr">
+          <span class="tl">Luz trasera activa</span>
+          <label class="sw">
+            <input type="checkbox" id="bl-toggle" checked>
+            <div class="swt"></div>
+            <div class="swth"></div>
+          </label>
+        </div>
+
+        <!-- Backlight controls (faded when off) -->
+        <div id="bl-opts">
+
+          <!-- Color -->
+          <div class="ctrl" style="margin-bottom:3px">
+            <div class="cl">Color de la Luz</div>
+            <div class="prr" id="bl-prr">
+              <div class="pr on"  data-c="#ffffff" style="background:#fff"></div>
+              <div class="pr"     data-c="#ffe8a0" style="background:#ffe8a0"></div>
+              <div class="pr"     data-c="#00e5ff" style="background:#00e5ff"></div>
+              <div class="pr"     data-c="#ff2d78" style="background:#ff2d78"></div>
+              <div class="pr"     data-c="#ffb300" style="background:#ffb300"></div>
+              <div class="pr"     data-c="#39ff14" style="background:#39ff14"></div>
+              <div class="pr"     data-c="#7b2fff" style="background:#7b2fff"></div>
+              <div class="pr"     data-c="#ff4500" style="background:#ff4500"></div>
+              <div class="pr"     data-c="#ff6ec7" style="background:#ff6ec7"></div>
+              <div class="pr"     data-c="#00ff88" style="background:#00ff88"></div>
+              <div class="pr"     data-c="#ffd700" style="background:#ffd700"></div>
+              <div class="pr"     data-c="#00bfff" style="background:#00bfff"></div>
+            </div>
+            <div class="cpr">
+              <input type="color" id="bl-cp" value="#ffffff">
+              <span class="chash">#</span>
+              <span class="chex"  id="bl-hex">ffffff</span>
+            </div>
+          </div>
+
+          <!-- Position -->
+          <div class="ctrl" style="margin-bottom:3px">
+            <div class="cl">Posición</div>
+            <select id="bl-pos">
+              <option value="perimeter">☰  Todo el perímetro</option>
+              <option value="top">↑  Solo arriba</option>
+              <option value="bottom">↓  Solo abajo</option>
+              <option value="sides">←  Izquierda y Derecha  →</option>
+            </select>
+          </div>
+
+          <!-- Intensity -->
+          <div class="ctrl" style="margin-bottom:3px">
+            <div class="cl">Intensidad</div>
+            <div class="sr">
+              <input type="range" id="bl-int" min="10" max="100" value="90" step="1">
+              <span class="sv" id="bl-intv">90%</span>
+            </div>
+          </div>
+
+          <!-- Spread -->
+          <div class="ctrl">
+            <div class="cl">Difusión (spread)</div>
+            <div class="sr">
+              <input type="range" id="bl-spr" min="10" max="100" value="75" step="1">
+              <span class="sv" id="bl-sprv">75%</span>
+            </div>
+          </div>
+
+        </div><!-- /bl-opts -->
+      </div>
+
+      <div class="dv"></div>
+
+      <!-- ══════════════════════════════════
+           SECCIÓN 2 — TIRAS LED DIBUJO
+      ══════════════════════════════════ -->
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div class="sec">
+          <div class="sec-dot" style="background:var(--ac)"></div>
+          Tiras LED (dibujo manual)
+        </div>
+
+        <!-- Draw toggle button -->
+        <button class="draw-btn" id="draw-btn">
+          <svg id="dbtn-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+          <span id="dbtn-txt">Activar Modo Dibujo</span>
+        </button>
+
+        <!-- Actions -->
+        <div class="acts">
+          <button class="act" id="act-undo">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+            Deshacer
+          </button>
+          <button class="act del" id="act-clear">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+            LED activo
+          </button>
+          <button class="act del" id="act-all">Todo</button>
+        </div>
+
+        <!-- Line width -->
+        <div class="ctrl">
+          <div class="cl">Grosor del trazo</div>
+          <div class="sr">
+            <input type="range" id="lwr" min="2" max="22" value="7" step="1">
+            <span class="sv" id="lwv">7</span>
+          </div>
+        </div>
+
+        <!-- LED cards -->
+        <div id="led-list"></div>
+
+      </div>
+
+      <div class="dv"></div>
+
+      <!-- ══════════════════════════════════
+           SECCIÓN 3 — FONDO DE PARED
+      ══════════════════════════════════ -->
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div class="sec">Fondo de Pared</div>
+
+        <div class="tabs" id="wall-tabs">
+          <button class="tab on" data-tab="color">Color sólido</button>
+          <button class="tab"    data-tab="img">Foto de sala</button>
+        </div>
+
+        <!-- Color panel -->
+        <div id="wall-cp" style="display:flex;flex-direction:column;gap:8px">
+          <div class="prr" id="wprr">
+            <div class="wpr on" data-wc="#090909" style="background:#090909;outline:1px solid #2a2a2a" title="Noche pura"></div>
+            <div class="wpr" data-wc="#141414" style="background:#141414" title="Carbón"></div>
+            <div class="wpr" data-wc="#202020" style="background:#202020" title="Grafito"></div>
+            <div class="wpr" data-wc="#2d2d2d" style="background:#2d2d2d" title="Gris oscuro"></div>
+            <div class="wpr" data-wc="#3c3c3c" style="background:#3c3c3c" title="Gris medio"></div>
+            <div class="wpr" data-wc="#130a04" style="background:#130a04" title="Café quemado"></div>
+            <div class="wpr" data-wc="#1d1205" style="background:#1d1205" title="Ámbar oscuro"></div>
+            <div class="wpr" data-wc="#3a2810" style="background:#3a2810" title="Madera"></div>
+            <div class="wpr" data-wc="#070c16" style="background:#070c16" title="Azul marino"></div>
+            <div class="wpr" data-wc="#0d0818" style="background:#0d0818" title="Violeta oscuro"></div>
+            <div class="wpr" data-wc="#07100a" style="background:#07100a" title="Verde selva"></div>
+            <div class="wpr" data-wc="#180808" style="background:#180808" title="Granate"></div>
+          </div>
+          <div class="cpr">
+            <input type="color" id="wcp" value="#090909">
+            <span class="chash">#</span>
+            <span class="chex"  id="wcpx">090909</span>
+          </div>
+        </div>
+
+        <!-- Image panel -->
+        <div id="wall-ip" class="hid" style="display:flex;flex-direction:column;gap:9px">
+          <div class="wdrop" id="wdrop">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M3 15l4-4 4 4 3-3 4 4"/>
+              <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+            <div><strong>Arrastra foto de sala</strong><p>El cuadro se montará encima</p></div>
+          </div>
+          <input type="file" id="wfi" accept="image/*">
+          <div class="wip hid" id="wipr">
+            <img class="wthumb" id="wthumb" src="" alt="">
+            <div style="flex:1;overflow:hidden">
+              <div class="winame" id="winame">sala.jpg</div>
+              <div class="wisub">Fondo de sala</div>
+            </div>
+            <button class="wirm" id="wirm">✕</button>
+          </div>
+          <div class="ctrl">
+            <div class="cl">Oscuridad del fondo</div>
+            <div class="sr">
+              <input type="range" id="wdark" min="0" max="75" value="28" step="1">
+              <span class="sv" id="wdarkv">28%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="height:4px"></div>
+    </div><!-- /pctrl -->
+
+    <!-- DOWNLOAD -->
+    <div class="pf">
+      <button class="btndl" id="dlbtn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Descargar Imagen
+      </button>
+      <div class="rn hid" id="rn">Aplicando marca de agua IKONIA…</div>
+    </div>
+
+  </aside>
+</main>
+
+<!-- ════════════════════════════════════════════════════════
+     JAVASCRIPT — UNIFIED ENGINE
+════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+const S = {
+  // images
+  frameImg: null,
+  wallImg:  null,
+
+  // backlight
+  bl: {
+    on:       true,
+    color:    '#ffffff',
+    position: 'perimeter',
+    intensity: 90,
+    spread:    75,
+  },
+
+  // draw
+  drawMode:    false,
+  isDrawing:   false,
+  currentPath: [],
+  activeLed:   0,
+  lineWidth:   7,
+  leds: [
+    { name:'LED 1', color:'#ff2d78', on:true, paths:[] },
+    { name:'LED 2', color:'#00e5ff', on:true, paths:[] },
+    { name:'LED 3', color:'#39ff14', on:true, paths:[] },
+    { name:'LED 4', color:'#ffb300', on:true, paths:[] },
+    { name:'LED 5', color:'#ffffff', on:true, paths:[] },
+  ],
+
+  // wall
+  wallMode:  'color',
+  wallColor: '#090909',
+  wallDark:  28,
+
+  // display dimensions (image area, no PAD)
+  _IW: 400, _IH: 400,
+};
+
+/* ═══════════════════════════════════════════════
+   DOM REFS
+═══════════════════════════════════════════════ */
+const CZ    = document.getElementById('cz');
+const DZ    = document.getElementById('dz');
+const FI    = document.getElementById('fi');
+const MC    = document.getElementById('mc');
+const PE    = document.getElementById('pe');
+const PCTRL = document.getElementById('pctrl');
+const FN    = document.getElementById('fn');
+
+const PILL_DRAW = document.getElementById('pill-draw');
+const PILL_GLOW = document.getElementById('pill-glow');
+const PILL_DTXT = document.getElementById('pill-draw-txt');
+
+// backlight refs
+const BL_TOG = document.getElementById('bl-toggle');
+const BL_OPTS= document.getElementById('bl-opts');
+const BL_CP  = document.getElementById('bl-cp');
+const BL_HEX = document.getElementById('bl-hex');
+const BL_POS = document.getElementById('bl-pos');
+const BL_INT = document.getElementById('bl-int');
+const BL_INTV= document.getElementById('bl-intv');
+const BL_SPR = document.getElementById('bl-spr');
+const BL_SPRV= document.getElementById('bl-sprv');
+
+// draw refs
+const DBTN  = document.getElementById('draw-btn');
+const DBICO = document.getElementById('dbtn-ico');
+const DBTXT = document.getElementById('dbtn-txt');
+const LWRNG = document.getElementById('lwr');
+const LWVAL = document.getElementById('lwv');
+
+// wall refs
+const WCP   = document.getElementById('wcp');
+const WCPX  = document.getElementById('wcpx');
+const WDROP = document.getElementById('wdrop');
+const WFI   = document.getElementById('wfi');
+const WIPR  = document.getElementById('wipr');
+const WTHM  = document.getElementById('wthumb');
+const WNME  = document.getElementById('winame');
+const WIRM  = document.getElementById('wirm');
+const WDARK = document.getElementById('wdark');
+const WDRKV = document.getElementById('wdarkv');
+
+const DLBTN = document.getElementById('dlbtn');
+const RN    = document.getElementById('rn');
+
+const ctx   = MC.getContext('2d');
+
+/* ═══════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════ */
+/** PAD around image in canvas when backlight is on */
+function getPAD(IW, IH) {
+  return S.bl.on
+    ? Math.round(Math.max(Math.min(IW, IH) * 0.32, 80))
+    : 0;
+}
+
+/** Edges to illuminate */
+function getEdges(pos) {
+  return ({
+    perimeter:{T:1,B:1,L:1,R:1},
+    top:      {T:1,B:0,L:0,R:0},
+    bottom:   {T:0,B:1,L:0,R:0},
+    sides:    {T:0,B:0,L:1,R:1},
+  })[pos]||{T:1,B:1,L:1,R:1};
+}
+
+/* ═══════════════════════════════════════════════
+   FRAME IMAGE LOAD
+═══════════════════════════════════════════════ */
+function loadFrame(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const img = new Image();
+  img.onload = () => {
+    S.frameImg = img;
+    const n = file.name;
+    FN.textContent = n.length > 26 ? n.slice(0,24)+'…' : n;
+    DZ.classList.add('hid');
+    MC.classList.remove('hid');
+    PE.classList.add('hid');
+    PCTRL.classList.remove('hid');
+    DLBTN.disabled = false;
+    sizeCanvas();
+  };
+  img.src = URL.createObjectURL(file);
+}
+DZ.addEventListener('dragover',  e => { e.preventDefault(); DZ.classList.add('over'); });
+DZ.addEventListener('dragleave', () => DZ.classList.remove('over'));
+DZ.addEventListener('drop', e => { e.preventDefault(); DZ.classList.remove('over'); loadFrame(e.dataTransfer.files[0]); });
+DZ.addEventListener('click', () => FI.click());
+FI.addEventListener('change', e => loadFrame(e.target.files[0]));
+document.getElementById('fchb').addEventListener('click', () => FI.click());
+
+/* ═══════════════════════════════════════════════
+   WALL IMAGE LOAD
+═══════════════════════════════════════════════ */
+function loadWall(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    S.wallImg = img;
+    WTHM.src = url;
+    const n = file.name;
+    WNME.textContent = n.length > 22 ? n.slice(0,20)+'…' : n;
+    WDROP.classList.add('hid');
+    WIPR.classList.remove('hid');
+    render();
+  };
+  img.src = url;
+}
+WDROP.addEventListener('dragover',  e => { e.preventDefault(); WDROP.classList.add('over'); });
+WDROP.addEventListener('dragleave', () => WDROP.classList.remove('over'));
+WDROP.addEventListener('drop', e => { e.preventDefault(); WDROP.classList.remove('over'); loadWall(e.dataTransfer.files[0]); });
+WDROP.addEventListener('click', () => WFI.click());
+WFI.addEventListener('change', e => loadWall(e.target.files[0]));
+WIRM.addEventListener('click', () => {
+  S.wallImg = null; WTHM.src = '';
+  WDROP.classList.remove('hid'); WIPR.classList.add('hid');
+  render();
+});
+
+/* ═══════════════════════════════════════════════
+   WALL COLOR CONTROLS
+═══════════════════════════════════════════════ */
+function setWallColor(hex) {
+  S.wallColor = hex; WCP.value = hex; WCPX.textContent = hex.replace('#','');
+  if (S.wallMode === 'color') CZ.style.background = hex;
+  render();
+}
+WCP.addEventListener('input', () => {
+  setWallColor(WCP.value);
+  document.querySelectorAll('#wprr .wpr').forEach(p => p.classList.remove('on'));
+});
+document.querySelectorAll('#wprr .wpr').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('#wprr .wpr').forEach(x => x.classList.remove('on'));
+    p.classList.add('on');
+    setWallColor(p.dataset.wc);
+  });
+});
+
+/* wall tabs */
+document.querySelectorAll('#wall-tabs .tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#wall-tabs .tab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    S.wallMode = btn.dataset.tab;
+    document.getElementById('wall-cp').classList.toggle('hid', S.wallMode !== 'color');
+    document.getElementById('wall-ip').classList.toggle('hid', S.wallMode !== 'img');
+    CZ.style.background = S.wallMode === 'color' ? S.wallColor : '#090909';
+    render();
+  });
+});
+
+WDARK.addEventListener('input', () => {
+  S.wallDark = +WDARK.value; WDRKV.textContent = S.wallDark+'%'; render();
+});
+
+/* ═══════════════════════════════════════════════
+   BACKLIGHT CONTROLS
+═══════════════════════════════════════════════ */
+BL_TOG.addEventListener('change', () => {
+  S.bl.on = BL_TOG.checked;
+  BL_OPTS.classList.toggle('fdd', !S.bl.on);
+  PILL_GLOW.classList.toggle('on', S.bl.on);
+  sizeCanvas(); // PAD changes when backlight toggled
+});
+
+function setBlColor(hex, preset) {
+  S.bl.color = hex;
+  BL_CP.value = hex;
+  BL_HEX.textContent = hex.replace('#','');
+  document.querySelectorAll('#bl-prr .pr').forEach(p => p.classList.toggle('on', p === preset));
+  render();
+}
+BL_CP.addEventListener('input', () => setBlColor(BL_CP.value, null));
+document.querySelectorAll('#bl-prr .pr').forEach(p => {
+  p.addEventListener('click', () => setBlColor(p.dataset.c, p));
+});
+
+BL_POS.addEventListener('change', () => { S.bl.position = BL_POS.value; render(); });
+BL_INT.addEventListener('input',  () => { S.bl.intensity = +BL_INT.value; BL_INTV.textContent = S.bl.intensity+'%'; render(); });
+BL_SPR.addEventListener('input',  () => { S.bl.spread    = +BL_SPR.value; BL_SPRV.textContent = S.bl.spread+'%'; render(); });
+
+// Show pill on load
+PILL_GLOW.classList.add('on');
+
+/* ═══════════════════════════════════════════════
+   DRAW MODE
+═══════════════════════════════════════════════ */
+function toggleDraw() {
+  S.drawMode = !S.drawMode;
+  DBTN.classList.toggle('on', S.drawMode);
+  MC.classList.toggle('draw-cursor', S.drawMode);
+  MC.style.touchAction = S.drawMode ? 'none' : 'auto';
+  PILL_DRAW.classList.toggle('on', S.drawMode);
+
+  // Update button inner content
+  if (S.drawMode) {
+    DBICO.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="3"/>';
+    DBTXT.textContent = 'Detener Dibujo';
+    syncPillTxt();
+  } else {
+    DBICO.innerHTML = '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>';
+    DBTXT.textContent = 'Activar Modo Dibujo';
+  }
+}
+function syncPillTxt() {
+  PILL_DTXT.textContent = `${S.leds[S.activeLed].name}`;
+}
+DBTN.addEventListener('click', toggleDraw);
+LWRNG.addEventListener('input', () => { S.lineWidth = +LWRNG.value; LWVAL.textContent = S.lineWidth; });
+
+document.getElementById('act-undo').addEventListener('click', () => {
+  const l = S.leds[S.activeLed];
+  if (l.paths.length) { l.paths.pop(); refreshPC(S.activeLed); render(); }
+});
+document.getElementById('act-clear').addEventListener('click', () => {
+  S.leds[S.activeLed].paths = []; refreshPC(S.activeLed); render();
+});
+document.getElementById('act-all').addEventListener('click', () => {
+  S.leds.forEach((l,i) => { l.paths = []; refreshPC(i); }); render();
+});
+
+/* ═══════════════════════════════════════════════
+   LED CARDS
+═══════════════════════════════════════════════ */
+const PRESETS = [
+  '#ffffff','#ffe8a0','#00e5ff','#ff2d78',
+  '#ffb300','#39ff14','#7b2fff','#ff4500',
+  '#ff6ec7','#00ff88','#ffd700','#00bfff',
+];
+
+function buildLedCards() {
+  const list = document.getElementById('led-list');
+  list.innerHTML = S.leds.map((led, i) => {
+    const glow = led.on ? `box-shadow:0 0 12px ${led.color}` : '';
+    const prs  = PRESETS.map(c =>
+      `<div class="pr lpr ${c===led.color?'on':''}" data-i="${i}" data-c="${c}" style="background:${c}"></div>`
+    ).join('');
+    const pc = led.paths.length;
+    return `
+<div class="lcard" id="lc-${i}">
+  <div class="lcard-hdr" data-hdr="${i}">
+    <div class="ldot" id="ldot-${i}" style="background:${led.color};${glow}"></div>
+    <input class="lname" id="lnm-${i}" value="${led.name}" placeholder="LED ${i+1}">
+    <span class="lpc ${pc>0?'has':''}" id="lpc-${i}">${pc}</span>
+    <label class="sw" onclick="event.stopPropagation()">
+      <input type="checkbox" id="lon-${i}" ${led.on?'checked':''}>
+      <div class="swt"></div><div class="swth"></div>
+    </label>
+  </div>
+  <div class="lcpanel">
+    <div class="prr">${prs}</div>
+    <div class="cpr">
+      <input type="color" id="lcp-${i}" value="${led.color}">
+      <span class="chash">#</span>
+      <span class="chex" id="lchx-${i}">${led.color.replace('#','')}</span>
+    </div>
+  </div>
+</div>`;
+  }).join('');
+
+  S.leds.forEach((_, i) => {
+    // Header click → select
+    document.querySelector(`#lc-${i} .lcard-hdr`).addEventListener('click', () => selectLed(i));
+    // Name
+    const nm = document.getElementById(`lnm-${i}`);
+    nm.addEventListener('click', e => e.stopPropagation());
+    nm.addEventListener('input', () => {
+      S.leds[i].name = nm.value;
+      if (S.activeLed === i && S.drawMode) syncPillTxt();
+    });
+    // Toggle
+    const tog = document.getElementById(`lon-${i}`);
+    tog.addEventListener('change', e => {
+      e.stopPropagation();
+      S.leds[i].on = tog.checked;
+      refreshDot(i); render();
+    });
+    // Color picker
+    const cp = document.getElementById(`lcp-${i}`);
+    cp.addEventListener('input', e => { e.stopPropagation(); setLedColor(i, cp.value, null); });
+    // Presets
+    document.querySelectorAll(`.lpr[data-i="${i}"]`).forEach(p => {
+      p.addEventListener('click', e => { e.stopPropagation(); setLedColor(i, p.dataset.c, p); });
+    });
+  });
+
+  markSelected();
+}
+
+function selectLed(i) {
+  S.activeLed = i;
+  markSelected();
+  if (S.drawMode) syncPillTxt();
+}
+function markSelected() {
+  S.leds.forEach((_,i) => {
+    const c = document.getElementById(`lc-${i}`);
+    if (c) c.classList.toggle('sel', i === S.activeLed);
+  });
+}
+function setLedColor(i, hex, presetEl) {
+  S.leds[i].color = hex;
+  const cp = document.getElementById(`lcp-${i}`);
+  const hx = document.getElementById(`lchx-${i}`);
+  if (cp) cp.value = hex;
+  if (hx) hx.textContent = hex.replace('#','');
+  document.querySelectorAll(`.lpr[data-i="${i}"]`).forEach(p =>
+    p.classList.toggle('on', p === presetEl)
+  );
+  refreshDot(i); render();
+}
+function refreshDot(i) {
+  const d = document.getElementById(`ldot-${i}`);
+  if (!d) return;
+  d.style.background = S.leds[i].color;
+  d.style.boxShadow  = S.leds[i].on ? `0 0 12px ${S.leds[i].color}` : '';
+}
+function refreshPC(i) {
+  const el = document.getElementById(`lpc-${i}`);
+  if (!el) return;
+  const n = S.leds[i].paths.length;
+  el.textContent = n; el.className = n>0?'lpc has':'lpc';
+}
+
+/* ═══════════════════════════════════════════════
+   CANVAS SIZING
+═══════════════════════════════════════════════ */
+function sizeCanvas() {
+  if (!S.frameImg) return;
+  const maxW = CZ.clientWidth  - 24;
+  const maxH = CZ.clientHeight - 24;
+  // Shrink available space to account for PAD when backlight is on
+  const shrink = S.bl.on ? 0.60 : 1.0;
+  const sc = Math.min(
+    maxW * shrink / S.frameImg.naturalWidth,
+    maxH * shrink / S.frameImg.naturalHeight,
+    1.5
+  );
+  S._IW = Math.round(S.frameImg.naturalWidth  * sc);
+  S._IH = Math.round(S.frameImg.naturalHeight * sc);
+  const PAD = getPAD(S._IW, S._IH);
+  MC.width  = S._IW + PAD * 2;
+  MC.height = S._IH + PAD * 2;
+  MC.style.width  = '';  // let CSS max-width/height handle display
+  MC.style.height = '';
+  render();
+}
+window.addEventListener('resize', sizeCanvas);
+
+/* ═══════════════════════════════════════════════
+   RENDER PIPELINE
+═══════════════════════════════════════════════ */
+function render() {
+  if (!S.frameImg) return;
+  renderTo(ctx, MC.width, MC.height, S._IW, S._IH);
+}
+
+/**
+ * renderTo — draws everything onto a 2d context.
+ *
+ * @param {CanvasRenderingContext2D} dc  - target context
+ * @param {number} cw  - total canvas width  (IW + 2*PAD)
+ * @param {number} ch  - total canvas height (IH + 2*PAD)
+ * @param {number} IW  - image area width
+ * @param {number} IH  - image area height
+ *
+ * Pipeline (both effects run independently, composited together):
+ *  1.  Background: wall color or room photo
+ *  2.  [BACKLIGHT] Bloom: offscreen glow strips → 5-pass bloom on wall
+ *  3.  Frame drop shadow
+ *  4.  Image at (PAD, PAD)
+ *  5.  [DRAW LED] Freehand paths at image offset (PAD, PAD)
+ *  6.  [BACKLIGHT] Ambient screen blend on image face
+ *  7.  Hairline frame border
+ */
+function renderTo(dc, cw, ch, IW, IH) {
+  const PAD = Math.round((cw - IW) / 2);   // = getPAD(IW, IH) or 0
+  const INT = S.bl.intensity / 100;
+  const SPD = S.bl.spread    / 100;
+
+  dc.clearRect(0, 0, cw, ch);
+
+  /* ── 1. BACKGROUND ── */
+  if (S.wallMode === 'img' && S.wallImg) {
+    const wi = S.wallImg;
+    const sc = Math.max(cw/wi.naturalWidth, ch/wi.naturalHeight);
+    const bw = wi.naturalWidth*sc, bh = wi.naturalHeight*sc;
+    dc.filter = 'blur(2px)';
+    dc.drawImage(wi, (cw-bw)/2, (ch-bh)/2, bw, bh);
+    dc.filter = 'none';
+    dc.fillStyle = `rgba(0,0,0,${S.wallDark/100})`;
+    dc.fillRect(0,0,cw,ch);
+  } else {
+    dc.fillStyle = S.wallColor;
+    dc.fillRect(0,0,cw,ch);
+    if (PAD > 0) {
+      // Radial vignette — centre brighter, edges darker
+      const vg = dc.createRadialGradient(cw/2,ch/2,0, cw/2,ch/2,Math.max(cw,ch)*0.65);
+      vg.addColorStop(0,'rgba(255,255,255,0.04)');
+      vg.addColorStop(1,'rgba(0,0,0,0.52)');
+      dc.fillStyle=vg; dc.fillRect(0,0,cw,ch);
+    }
+  }
+
+  /* ── 2. BACKLIGHT BLOOM ── */
+  if (S.bl.on && PAD > 0) {
+    const gs = document.createElement('canvas');
+    gs.width=cw; gs.height=ch;
+    const gc = gs.getContext('2d');
+    const E  = getEdges(S.bl.position);
+    const ix=PAD, iy=PAD;
+    const ST = Math.max(24, Math.round(Math.min(IW,IH)*0.055));
+    gc.fillStyle = S.bl.color;
+    if (E.T) gc.fillRect(ix,        iy,        IW, ST);
+    if (E.B) gc.fillRect(ix,        iy+IH-ST,  IW, ST);
+    if (E.L) gc.fillRect(ix,        iy,        ST, IH);
+    if (E.R) gc.fillRect(ix+IW-ST,  iy,        ST, IH);
+
+    const maxB = PAD * SPD * 1.2;
+    [[maxB*1.0,0.58*INT],[maxB*.55,0.64*INT],[maxB*.26,0.70*INT],[maxB*.10,0.76*INT],[maxB*.03,0.84*INT]]
+    .forEach(([blur,alpha]) => {
+      if (blur < 0.3) return;
+      dc.save();
+      dc.globalAlpha = alpha;
+      dc.filter = `blur(${blur.toFixed(2)}px)`;
+      dc.drawImage(gs,0,0);
+      dc.restore();
+    });
+    dc.filter='none';
+  }
+
+  /* ── 3. FRAME SHADOW ── */
+  dc.save();
+  dc.shadowColor  ='rgba(0,0,0,0.96)';
+  dc.shadowBlur   = Math.max(20, PAD*0.55);
+  dc.shadowOffsetY= Math.max(4,  PAD*0.1);
+  dc.fillStyle='#000';
+  dc.fillRect(PAD,PAD,IW,IH);
+  dc.restore();
+
+  /* ── 4. FRAME IMAGE ── */
+  dc.drawImage(S.frameImg, PAD, PAD, IW, IH);
+
+  /* ── 5. DRAW-MODE LED PATHS ── */
+  S.leds.forEach(led => {
+    if (!led.on) return;
+    led.paths.forEach(path => paintPath(dc, path, led.color, IW, IH, PAD, PAD));
+  });
+  // Live stroke
+  if (S.isDrawing && S.currentPath.length > 1) {
+    paintPath(dc, S.currentPath, S.leds[S.activeLed].color, IW, IH, PAD, PAD);
+  }
+
+  /* ── 6. BACKLIGHT AMBIENT (screen blend) ── */
+  if (S.bl.on && PAD > 0) {
+    const AMB  = INT * 0.44;
+    const RECH = Math.min(IW,IH) * 0.50;
+    const E    = getEdges(S.bl.position);
+    const c    = S.bl.color;
+    dc.save();
+    dc.beginPath(); dc.rect(PAD,PAD,IW,IH); dc.clip();
+    dc.globalCompositeOperation='screen';
+    dc.globalAlpha=AMB;
+    const grd = (x0,y0,x1,y1,rx,ry,rw,rh) => {
+      const g=dc.createLinearGradient(x0,y0,x1,y1);
+      g.addColorStop(0,c); g.addColorStop(1,'rgba(0,0,0,0)');
+      dc.fillStyle=g; dc.fillRect(rx,ry,rw,rh);
+    };
+    if (E.T) grd(0,PAD,    0,PAD+RECH,    PAD,PAD,        IW,RECH);
+    if (E.B) grd(0,PAD+IH, 0,PAD+IH-RECH, PAD,PAD+IH-RECH,IW,RECH);
+    if (E.L) grd(PAD,0,    PAD+RECH,0,    PAD,PAD,         RECH,IH);
+    if (E.R) grd(PAD+IW,0, PAD+IW-RECH,0, PAD+IW-RECH,PAD,RECH,IH);
+    dc.restore();
+  }
+
+  /* ── 7. FRAME BORDER ── */
+  dc.save();
+  dc.strokeStyle='rgba(255,255,255,0.065)';
+  dc.lineWidth=1;
+  dc.strokeRect(PAD+.5,PAD+.5,IW-1,IH-1);
+  dc.restore();
+}
+
+/* ═══════════════════════════════════════════════
+   PAINT PATH — 6-pass LED glow
+   Bezier midpoints = silky smooth strokes.
+═══════════════════════════════════════════════ */
+function paintPath(dc, norm, color, IW, IH, ox, oy) {
+  if (norm.length < 2) return;
+  const pts = norm.map(p => ({ x: p.x*IW+ox, y: p.y*IH+oy }));
+  const lw  = S.lineWidth * Math.min(IW,IH) / 620;
+
+  const stroke = (w, alpha, blur, col) => {
+    dc.save();
+    dc.globalAlpha=alpha; dc.strokeStyle=col; dc.lineWidth=w;
+    dc.lineCap='round'; dc.lineJoin='round';
+    dc.shadowBlur=blur; dc.shadowColor=col;
+    dc.beginPath();
+    dc.moveTo(pts[0].x, pts[0].y);
+    for (let i=1;i<pts.length-1;i++) {
+      const mx=(pts[i].x+pts[i+1].x)*.5, my=(pts[i].y+pts[i+1].y)*.5;
+      dc.quadraticCurveTo(pts[i].x,pts[i].y,mx,my);
+    }
+    dc.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+    dc.stroke();
+    dc.restore();
+  };
+
+  stroke(lw*10, 0.06, 46, color);
+  stroke(lw* 6, 0.12, 30, color);
+  stroke(lw* 4, 0.22, 18, color);
+  stroke(lw* 2, 0.52, 10, color);
+  stroke(lw* 1, 0.88,  5, color);
+  stroke(lw*.4, 0.97,  2, '#fff');
+}
+
+/* ═══════════════════════════════════════════════
+   POINTER → NORMALIZED (image coords)
+═══════════════════════════════════════════════ */
+function canvasXY(clientX, clientY) {
+  const r   = MC.getBoundingClientRect();
+  const scx = MC.width  / r.width;
+  const scy = MC.height / r.height;
+  const PAD = getPAD(S._IW, S._IH);
+  return {
+    x: ((clientX - r.left) * scx - PAD) / S._IW,
+    y: ((clientY - r.top ) * scy - PAD) / S._IH,
+  };
+}
+
+function startDraw(x, y) {
+  if (!S.drawMode) return;
+  S.isDrawing = true;
+  S.currentPath = [canvasXY(x,y)];
+}
+function moveDraw(x, y) {
+  if (!S.drawMode || !S.isDrawing) return;
+  const pt = canvasXY(x,y);
+  const last = S.currentPath[S.currentPath.length-1];
+  if (!last || Math.hypot(pt.x-last.x, pt.y-last.y) > 0.0014) {
+    S.currentPath.push(pt);
+    render();
+  }
+}
+function endDraw() {
+  if (!S.isDrawing) return;
+  S.isDrawing = false;
+  if (S.currentPath.length > 1) {
+    S.leds[S.activeLed].paths.push([...S.currentPath]);
+    refreshPC(S.activeLed);
+  }
+  S.currentPath = [];
+  render();
+}
+
+/* ── MOUSE ── */
+MC.addEventListener('mousedown',  e => startDraw(e.clientX, e.clientY));
+MC.addEventListener('mousemove',  e => moveDraw(e.clientX, e.clientY));
+MC.addEventListener('mouseup',    () => endDraw());
+MC.addEventListener('mouseleave', () => endDraw());
+
+/* ── TOUCH ── */
+MC.addEventListener('touchstart', e => {
+  if (!S.drawMode) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  startDraw(t.clientX, t.clientY);
+}, { passive: false });
+MC.addEventListener('touchmove', e => {
+  if (!S.drawMode || !S.isDrawing) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  moveDraw(t.clientX, t.clientY);
+}, { passive: false });
+MC.addEventListener('touchend', e => {
+  if (!S.drawMode) return;
+  e.preventDefault();
+  endDraw();
+}, { passive: false });
+
+/* ═══════════════════════════════════════════════
+   DOWNLOAD — hi-res + IKONIA watermark
+═══════════════════════════════════════════════ */
+DLBTN.addEventListener('click', () => {
+  if (!S.frameImg) return;
+  DLBTN.disabled = true;
+  RN.classList.remove('hid');
+
+  requestAnimationFrame(() => setTimeout(() => {
+    try {
+      const MAX = 4096;
+      const sc  = Math.min(MAX/S.frameImg.naturalWidth, MAX/S.frameImg.naturalHeight, 1);
+      const IW  = Math.round(S.frameImg.naturalWidth  * sc);
+      const IH  = Math.round(S.frameImg.naturalHeight * sc);
+      const PAD = getPAD(IW, IH);
+      const cw  = IW + PAD*2, ch = IH + PAD*2;
+
+      const dlC = document.createElement('canvas');
+      dlC.width=cw; dlC.height=ch;
+      const dc = dlC.getContext('2d');
+
+      renderTo(dc, cw, ch, IW, IH);
+
+      /* ── WATERMARK ──
+         Text: "IKONIA LED"  ·  Bottom-right  ·  white 50% opacity */
+      const fs  = Math.max(14, Math.round(cw * 0.018));
+      const mg  = Math.round(cw * 0.022);
+      dc.save();
+      dc.globalAlpha  = 0.50;
+      dc.fillStyle    = '#FFFFFF';
+      dc.font         = `700 ${fs}px 'Syne',system-ui,sans-serif`;
+      dc.textAlign    = 'right';
+      dc.textBaseline = 'bottom';
+      dc.fillText('IKONIA LED', cw-mg, ch-mg);
+      dc.restore();
+
+      const a   = document.createElement('a');
+      a.download = 'ikonia-led.png';
+      a.href     = dlC.toDataURL('image/png');
+      a.click();
+    } finally {
+      RN.classList.add('hid');
+      DLBTN.disabled = false;
+    }
+  }, 80));
+});
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+buildLedCards();
+CZ.style.background = S.wallColor;
+</script>
+</body>
+</html>
