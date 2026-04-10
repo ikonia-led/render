@@ -1035,15 +1035,7 @@ function renderTo(dc, cw, ch, IW, IH) {
   } else {
     dc.fillStyle = S.wallColor;
     dc.fillRect(0,0,cw,ch);
-    if (PAD > 0) {
-      // Radial vignette — centre brighter, edges darker
-      const vg = dc.createRadialGradient(cw/2,ch/2,0, cw/2,ch/2,Math.max(cw,ch)*0.65);
-      vg.addColorStop(0,'rgba(255,255,255,0.04)');
-      vg.addColorStop(1,'rgba(0,0,0,0.52)');
-      dc.fillStyle=vg; dc.fillRect(0,0,cw,ch);
-    }
   }
-
   /* ── 2. BACKLIGHT BLOOM ── */
   if (S.bl.on && PAD > 0) {
     const gs = document.createElement('canvas');
@@ -1072,14 +1064,15 @@ function renderTo(dc, cw, ch, IW, IH) {
   }
 
   /* ── 3. FRAME SHADOW ── */
-  dc.save();
-  dc.shadowColor  ='rgba(0,0,0,0.96)';
-  dc.shadowBlur   = Math.max(20, PAD*0.55);
-  dc.shadowOffsetY= Math.max(4,  PAD*0.1);
-  dc.fillStyle='#000';
-  dc.fillRect(PAD,PAD,IW,IH);
-  dc.restore();
-
+ if (PAD > 0) {
+    dc.save();
+    dc.shadowColor  = 'rgba(0,0,0,0.92)';
+    dc.shadowBlur   = PAD * 0.55;
+    dc.shadowOffsetY= PAD * 0.10;
+    dc.fillStyle    = '#000';
+    dc.fillRect(PAD, PAD, IW, IH);
+    dc.restore();
+  }
   /* ── 4. FRAME IMAGE ── */
   dc.drawImage(S.frameImg, PAD, PAD, IW, IH);
 
